@@ -169,6 +169,7 @@ func main() {
 	}
 
 	var bodyAll []byte
+	var bodyCSVData []string
 	if *body != "" {
 		bodyAll = []byte(*body)
 	}
@@ -177,7 +178,8 @@ func main() {
 		if err != nil {
 			errAndExit(err.Error())
 		}
-		bodyAll = slurp
+
+		bodyCSVData = strings.Split(string(slurp), "\n")
 	}
 
 	var proxyURL *gourl.URL
@@ -193,7 +195,8 @@ func main() {
 	if err != nil {
 		usageAndExit(err.Error())
 	}
-	req.ContentLength = int64(len(bodyAll))
+	req.ContentLength = int64(len(bodyCSVData[0]))
+
 	if username != "" || password != "" {
 		req.SetBasicAuth(username, password)
 	}
@@ -215,6 +218,7 @@ func main() {
 	w := &requester.Work{
 		Request:            req,
 		RequestBody:        bodyAll,
+		RequestBodies:      bodyCSVData,
 		N:                  num,
 		C:                  conc,
 		QPS:                q,

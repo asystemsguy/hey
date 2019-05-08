@@ -53,6 +53,8 @@ type Work struct {
 
 	RequestBody []byte
 
+	RequestBodies []string
+
 	// N is the total number of requests to make.
 	N int
 
@@ -140,13 +142,15 @@ func (b *Work) Finish() {
 	b.report.finalize(total)
 }
 
-func (b *Work) makeRequest(c *http.Client) {
+func (b *Work) makeRequest(c *http.Client, num int) {
 	s := now()
 	var size int64
 	var code int
 	var dnsStart, connStart, resStart, reqStart, delayStart time.Duration
 	var dnsDuration, connDuration, resDuration, reqDuration, delayDuration time.Duration
-	req := cloneRequest(b.Request, b.RequestBody)
+
+	b.Request.ContentLength = int64(len(b.RequestBodies[num]))
+	req := cloneRequest(b.Request, []byte(b.RequestBodies[num]))
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
 			dnsStart = now()
@@ -197,7 +201,7 @@ func (b *Work) makeRequest(c *http.Client) {
 	}
 }
 
-func (b *Work) runWorker(client *http.Client, n int) {
+func (b *Work) runWorker(client *http.Client, n int, c int) {
 	var throttle <-chan time.Time
 	if b.QPS > 0 {
 		throttle = time.Tick(time.Duration(1e6/(b.QPS)) * time.Microsecond)
@@ -217,7 +221,7 @@ func (b *Work) runWorker(client *http.Client, n int) {
 			if b.QPS > 0 {
 				<-throttle
 			}
-			b.makeRequest(client)
+			b.makeRequest(client, n*c+i)
 		}
 	}
 }
@@ -244,9 +248,11 @@ func (b *Work) runWorkers() {
 	client := &http.Client{Transport: tr, Timeout: time.Duration(b.Timeout) * time.Second}
 
 	// Ignore the case where b.N % b.C != 0.
+	var c = -1
 	for i := 0; i < b.C; i++ {
 		go func() {
-			b.runWorker(client, b.N/b.C)
+			c = c + 1
+			b.runWorker(client, b.N/b.C, c)
 			wg.Done()
 		}()
 	}
