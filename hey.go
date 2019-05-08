@@ -66,7 +66,7 @@ var (
 )
 
 var usage = `Usage: hey [options...] <url>
-
+Harsha's hey
 Options:
   -n  Number of requests to run. Default is 200.
   -c  Number of requests to run concurrently. Total number of requests cannot
