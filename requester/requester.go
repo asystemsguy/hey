@@ -149,7 +149,6 @@ func (b *Work) makeRequest(c *http.Client, num int) {
 	var dnsStart, connStart, resStart, reqStart, delayStart time.Duration
 	var dnsDuration, connDuration, resDuration, reqDuration, delayDuration time.Duration
 
-	b.Request.ContentLength = int64(len(b.RequestBodies[num]))
 	req := cloneRequest(b.Request, []byte(b.RequestBodies[num]))
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
@@ -271,6 +270,8 @@ func cloneRequest(r *http.Request, body []byte) *http.Request {
 		r2.Header[k] = append([]string(nil), s...)
 	}
 	if len(body) > 0 {
+
+		r2.ContentLength = int64(len(body))
 		r2.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 	return r2
